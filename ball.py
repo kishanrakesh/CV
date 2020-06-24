@@ -15,6 +15,22 @@ greenUpper = (255, 255, 111)
 pts = deque(maxlen=args["buffer"])
 vs = cv2.VideoCapture(args["video"])
 time.sleep(2.0)
+prev_x=None 
+prev_y=None
+def __draw_label(img, text, pos, bg_color):
+    font_face = cv2.FONT_HERSHEY_SIMPLEX
+    scale = 1
+    color = (0, 0, 0)
+    thickness = cv2.FILLED
+    margin = 2
+	
+    txt_size = cv2.getTextSize(text, font_face, scale, thickness)
+
+    end_x = pos[0] + txt_size[0][0] + margin
+    end_y = pos[1] - txt_size[0][1] - margin
+
+    cv2.rectangle(img, pos, (end_x, end_y), bg_color, thickness)
+    cv2.putText(img, text, pos, font_face, scale, color, 1, cv2.LINE_AA)
 while True:
 	frame = vs.read()
 	frame = frame[1] if args.get("video", False) else frame
@@ -33,12 +49,16 @@ while True:
 	if len(cnts) > 0:
 		c = max(cnts, key=cv2.contourArea)
 		((x, y), radius) = cv2.minEnclosingCircle(c)
+		if prev_x !=None and prev_y !=None:
+			if abs(prev_x - x) > 10 and abs(prev_y - y) > 10:
+				__draw_label(frame, 'Jitter', (20,20), (100,255,255))
 		M = cv2.moments(c)
 		center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
 		if radius > 10:
-			cv2.circle(frame, (int(x), int(y)), int(radius),
-				(0, 255, 255), 2)
+			cv2.circle(frame, (int(x), int(y)), int(radius),(0, 255, 255), 2)
 			cv2.circle(frame, center, 5, (0, 0, 255), -1)
+			prev_x=int(x)
+			prev_y=int(y)
 	pts.appendleft(center)
 	for i in range(1, len(pts)):
 		if pts[i - 1] is None or pts[i] is None:
